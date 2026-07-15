@@ -17,68 +17,65 @@ import subprocess
 import time
 from tqdm import tqdm
 
-# ReportLab libraries load cleanly
 from reportlab.lib.pagesizes import letter
 from reportlab.platypus import SimpleDocTemplate, Paragraph, Spacer, Table, TableStyle
 from reportlab.lib.styles import getSampleStyleSheet, ParagraphStyle
 from reportlab.lib import colors
 
-def run_command(cmd, shell=True):
-    """Executes platform binaries safely with structured time boundaries."""
+def run_command(cmd, timeout=120):
+    """Executes platform commands safely with variable time limits."""
     try:
-        result = subprocess.run(cmd, shell=shell, stdout=subprocess.PIPE, stderr=subprocess.PIPE, text=True, timeout=120)
+        result = subprocess.run(cmd, shell=True, stdout=subprocess.PIPE, stderr=subprocess.PIPE, text=True, timeout=timeout)
         if result.returncode == 0:
-            return result.stdout.strip() if result.stdout else "Command executed successfully with zero output lines."
+            return result.stdout.strip() if result.stdout else "Command completed successfully."
         else:
             return f"Execution Warning (Return Code {result.returncode}):\n{result.stderr.strip()}"
     except subprocess.TimeoutExpired:
-        return "Performance sub-test processing limit exceeded 120-second timeout window."
+        return f"Performance sub-test cut off after exceeding {timeout}s window."
     except Exception as e:
         return f"System loop execution error: {str(e)}"
 
 def main():
-    # Core performance execution sequence checklist
+    # Setup working execution sandbox path explicitly inside home directory
+    workspace = os.path.expanduser("~/bench_workspace")
+    os.makedirs(workspace, exist_ok=True)
+    os.chdir(workspace)
+
+    # Core execution configurations - Extended compilation timeouts to 600s
     steps = [
-        ("Synchronizing Core Repositories", "apt update -y"),
-        ("Deploying Benchmark Toolchains", "apt install git cmake clang openssl-tool p7zip root-repo xorgproto -y && apt update && apt install fio -y"),
-        ("Analyzing Processor Architecture", "lscpu"),
-        ("Auditing 7-Zip Core MIPS Calculations", "7z b"),
-        ("Measuring Cryptographic Hash Limits", f"openssl speed -multi {os.cpu_count() or 4} sha256"),
-        ("Compiling RAM Performance Library", "rm -rf tinymembench && git clone https://github.com/ssvb/tinymembench.git && cd tinymembench && sed -i '/\\.func/d' *.S && sed -i '/\\.endfunc/d' *.S && CFLAGS='-O3 -march=native' make"),
-        ("Evaluating Memory Speed & Latency", "./tinymembench/tinymembench"),
-        ("Compiling Vulkan Acceleration Code", "rm -rf vkpeak && git clone --recursive https://github.com/nihui/vkpeak.git && cd vkpeak && mkdir build && cd build && cmake .. && make -j$(nproc)"),
-        ("Measuring Raw Vulkan GPU FLOPS", "export LD_LIBRARY_PATH=/system/lib64:$LD_LIBRARY_PATH && ./vkpeak/build/vkpeak"),
-        ("Auditing ROM Flash Storage Bandwidth", "fio --name=seq_bench --ioengine=psync --rw=rw --bs=1m --size=256m --direct=1 --iodepth=1 --runtime=15 --time_based --end_fsync=1")
+        ("Synchronizing Core Repositories", "apt update -y", 120),
+        ("Deploying Benchmark Toolchains", "apt install git cmake clang openssl-tool p7zip root-repo xorgproto fio -y", 300),
+        ("Analyzing Processor Architecture", "lscpu", 60),
+        ("Auditing 7-Zip Core MIPS Calculations", "7z b", 180),
+        ("Measuring Cryptographic Hash Limits", f"openssl speed -multi {os.cpu_count() or 4} sha256", 180),
+        ("Compiling RAM Performance Library", "rm -rf tinymembench && git clone https://github.com/ssvb/tinymembench.git && cd tinymembench && sed -i '/\\.func/d' *.S && sed -i '/\\.endfunc/d' *.S && CFLAGS='-O3 -march=native' make", 600),
+        ("Evaluating Memory Speed & Latency", "./tinymembench/tinymembench", 180),
+        ("Compiling Vulkan Acceleration Code", "rm -rf vkpeak && git clone --recursive https://github.com/nihui/vkpeak.git && cd vkpeak && mkdir build && cd build && cmake .. && make -j$(nproc)", 600),
+        ("Measuring Raw Vulkan GPU FLOPS", "export LD_LIBRARY_PATH=/system/lib64:$LD_LIBRARY_PATH && ./vkpeak/build/vkpeak", 180),
+        ("Auditing ROM Flash Storage Bandwidth", "fio --name=seq_bench --ioengine=psync --rw=rw --bs=1m --size=256m --direct=1 --iodepth=1 --runtime=15 --time_based --end_fsync=1", 120)
     ]
 
     results = {}
     
-    # Corrected progress string parsing configuration
     with tqdm(total=len(steps), desc="Benchmark Execution", bar_format="{l_bar}{bar}| {n_fmt}/{total_fmt} [{elapsed}<{remaining}, {percentage:3.0f}%]") as pbar:
-        for description, command in steps:
+        for description, command, timeout_limit in steps:
             pbar.set_postfix_str(f"Active: {description[:22]}...")
             
-            # Context state routing adjustments
-            if "tinymembench/tinymembench" in command or "vkpeak" in command:
-                output = run_command(command, shell=True)
-            else:
-                output = run_command(command)
-                
+            # Lock the run command execution into the active sandbox folder
+            output = run_command(command, timeout=timeout_limit)
             results[description] = output
             pbar.update(1)
-            time.sleep(0.3)
+            time.sleep(0.2)
 
     # Clean working folder directories completely
-    run_command("rm -rf tinymembench vkpeak seq_bench*")
+    os.chdir(os.path.expanduser("~"))
+    subprocess.run("rm -rf bench_workspace seq_bench*", shell=True)
 
     print("\n[+] Compiling architecture metrics into final PDF document...")
     generate_pdf(results)
 
 def generate_pdf(data):
-    # CRITICAL FIX: Target the absolute public Android Downloads shared storage directory
     download_dir = "/storage/emulated/0/Download"
-    
-    # Fallback checking logic if shared storage isn't accessible
     if not os.path.exists(download_dir):
         download_dir = os.path.expanduser("~/storage/downloads")
     if not os.path.exists(download_dir):
@@ -126,10 +123,8 @@ def generate_pdf(data):
         doc.build(story)
         print(f"[✔] Profiling complete! PDF report saved directly to your main Downloads folder:\n    {pdf_path}\n")
     except Exception as e:
-        print(f"[!] Failed to write directly to shared storage. Writing to Home path instead.")
         fallback_path = os.path.join(os.path.expanduser("~"), "benchmark.pdf")
         doc.build(SimpleDocTemplate(fallback_path, pagesize=letter))
-        print(f"[✔] PDF saved to fallback path: {fallback_path}")
 
 if __name__ == "__main__":
     main()
