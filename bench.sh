@@ -5,33 +5,33 @@ echo "=================================================="
 echo "    BOOTSTRAPPING AUTOMATED BENCHMARK ENGINE      "
 echo "=================================================="
 
-# 1. Request standard Android folder storage authorization
+# 1. Request standard Android directory storage authorization links
 if [ ! -d "$HOME/storage" ]; then
-    echo "[*] Setting up storage permission symlinks..."
+    echo "[*] Initializing system storage access links..."
     termux-setup-storage
-    echo "[!] A window will pop up. Please tap 'Allow' to authorize storage access."
+    echo "[!] Action required: Tap 'Allow' on the system access prompt window."
     sleep 5
 fi
 
-# 2. Update registries and pull Python if missing
-echo "[*] Verifying system execution dependencies..."
+# 2. Synchronize apt package databases and install Python core if missing
+echo "[*] Validating core operating dependencies..."
 apt update -y
 if ! command -v python3 &> /dev/null; then
-    echo "[*] Python 3 not found. Automatically installing core runtime environment..."
+    echo "[*] Python 3 not detected. Commencing automated deployment..."
     apt install python -y
 else
-    echo "[+] Python 3 runtime verified."
+    echo "[+] Python 3 platform environment verified."
 fi
 
-# 3. Securely install modules bypassing Pillow asset chains
-echo "[*] Ensuring UI progress and reporting modules are present..."
+# 3. Securely pull user interface and data mapping libraries via pip
+echo "[*] Building isolated runtime module libraries..."
 pip install tqdm --quiet --no-warn-script-location
 pip install reportlab --no-deps --quiet --no-warn-script-location
 
-# 4. Fetch the primary Python benchmark engine and execute it
-echo "[*] Triggering main performance computation framework..."
+# 4. Stream down the master calculation matrix and pass control
+echo "[*] Initializing primary performance calculation matrix..."
 curl -sL https://raw.githubusercontent.com/sireenyadav/termux-brutebench/main/bench.py > bench.py
 python3 bench.py
 
-# 5. Wiping temporary loader files
+# 5. Clear out temporary pipeline loaders from the local terminal context
 rm -f bench.py
