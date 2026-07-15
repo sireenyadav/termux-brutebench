@@ -5,7 +5,7 @@ echo "=================================================="
 echo "    BOOTSTRAPPING AUTOMATED BENCHMARK ENGINE      "
 echo "=================================================="
 
-# 1. Check and request standard Android storage permissions
+# 1. Automatically handle standard Android storage permissions
 if [ ! -d "$HOME/storage" ]; then
     echo "[*] Setting up storage permission symlinks..."
     termux-setup-storage
@@ -13,7 +13,7 @@ if [ ! -d "$HOME/storage" ]; then
     sleep 5
 fi
 
-# 2. Update package registries and auto-install Python if missing
+# 2. Update registries and install Python if missing
 echo "[*] Verifying system execution dependencies..."
 apt update -y
 if ! command -v python3 &> /dev/null; then
@@ -23,8 +23,7 @@ else
     echo "[+] Python 3 runtime verified."
 fi
 
-# 3. Fix the Pip compilation issue
-# We add --no-deps to skip Pillow and explicitly pull only what we need
+# 3. CRITICAL: Install packages without dependency trees to bypass Pillow
 echo "[*] Ensuring UI progress and reporting modules are present..."
 pip install tqdm --quiet --no-warn-script-location
 pip install reportlab --no-deps --quiet --no-warn-script-location
