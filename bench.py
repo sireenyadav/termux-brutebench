@@ -17,7 +17,7 @@ import subprocess
 import time
 from tqdm import tqdm
 
-# ReportLab document engine layers load cleanly
+# ReportLab libraries load cleanly
 from reportlab.lib.pagesizes import letter
 from reportlab.platypus import SimpleDocTemplate, Paragraph, Spacer, Table, TableStyle
 from reportlab.lib.styles import getSampleStyleSheet, ParagraphStyle
@@ -53,7 +53,7 @@ def main():
 
     results = {}
     
-    # Corrected progress string parsing configuration (swapped percent for percentage)
+    # Corrected progress string parsing configuration
     with tqdm(total=len(steps), desc="Benchmark Execution", bar_format="{l_bar}{bar}| {n_fmt}/{total_fmt} [{elapsed}<{remaining}, {percentage:3.0f}%]") as pbar:
         for description, command in steps:
             pbar.set_postfix_str(f"Active: {description[:22]}...")
@@ -75,10 +75,14 @@ def main():
     generate_pdf(results)
 
 def generate_pdf(data):
-    # Establish default paths for Android internal shared storage panels
-    download_dir = "/data/data/com.termux/files/home/storage/downloads"
+    # CRITICAL FIX: Target the absolute public Android Downloads shared storage directory
+    download_dir = "/storage/emulated/0/Download"
+    
+    # Fallback checking logic if shared storage isn't accessible
     if not os.path.exists(download_dir):
-        download_dir = "/data/data/com.termux/files/home"
+        download_dir = os.path.expanduser("~/storage/downloads")
+    if not os.path.exists(download_dir):
+        download_dir = os.path.expanduser("~")
         
     pdf_path = os.path.join(download_dir, "benchmark.pdf")
     
@@ -105,7 +109,6 @@ def generate_pdf(data):
             continue
             
         story.append(Paragraph(section_name, section_style))
-        # Safely convert spacing characters to web layout structures
         formatted_text = raw_output.replace('\n', '<br/>').replace(' ', '&nbsp;')
         table_data = [[Paragraph(formatted_text, body_style)]]
         
@@ -119,8 +122,14 @@ def generate_pdf(data):
         story.append(out_table)
         story.append(Spacer(1, 8))
 
-    doc.build(story)
-    print(f"[✔] Profiling complete! Structured PDF layout saved directly to target directory:\n    {pdf_path}\n")
+    try:
+        doc.build(story)
+        print(f"[✔] Profiling complete! PDF report saved directly to your main Downloads folder:\n    {pdf_path}\n")
+    except Exception as e:
+        print(f"[!] Failed to write directly to shared storage. Writing to Home path instead.")
+        fallback_path = os.path.join(os.path.expanduser("~"), "benchmark.pdf")
+        doc.build(SimpleDocTemplate(fallback_path, pagesize=letter))
+        print(f"[✔] PDF saved to fallback path: {fallback_path}")
 
 if __name__ == "__main__":
     main()
