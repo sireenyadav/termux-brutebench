@@ -1,11 +1,23 @@
 #!/usr/bin/env python3
-import os
 import sys
+from types import ModuleType
+
+# =========================================================================
+# CRITICAL: Programmatic In-Memory Mocking of PIL to bypass Pillow crash
+# =========================================================================
+pil_mock = ModuleType("PIL")
+image_mock = ModuleType("PIL.Image")
+pil_mock.Image = image_mock
+sys.modules["PIL"] = pil_mock
+sys.modules["PIL.Image"] = image_mock
+# =========================================================================
+
+import os
 import subprocess
 import time
 from tqdm import tqdm
 
-# Import ReportLab document builders safely
+# Now safe to import reportlab without errors
 from reportlab.lib.pagesizes import letter
 from reportlab.platypus import SimpleDocTemplate, Paragraph, Spacer, Table, TableStyle
 from reportlab.lib.styles import getSampleStyleSheet, ParagraphStyle
@@ -22,7 +34,6 @@ def run_command(cmd, shell=True):
         return f"Pipeline execution error: {str(e)}"
 
 def main():
-    # Sequential structural execution checklist
     steps = [
         ("Registering Vendor Repositories", "apt update -y"),
         ("Installing Engine Toolchains", "apt install git cmake clang openssl-tool p7zip root-repo xorgproto -y && apt update && apt install fio -y"),
@@ -38,12 +49,10 @@ def main():
 
     results = {}
     
-    # Live updating constant percentage UI tracking engine
     with tqdm(total=len(steps), desc="Benchmark Execution", bar_format="{l_bar}{bar}| {n_fmt}/{total_fmt} [{elapsed}<{remaining}, {percent:3.0f}%]") as pbar:
         for description, command in steps:
             pbar.set_postfix_str(f"Active: {description[:22]}...")
             
-            # Context switch handling for directories
             if "tinymembench/tinymembench" in command or "vkpeak" in command:
                 output = run_command(command, shell=True)
             else:
@@ -53,7 +62,6 @@ def main():
             pbar.update(1)
             time.sleep(0.5)
 
-    # File system sanitation sweep
     run_command("rm -rf tinymembench vkpeak seq_bench*")
 
     print("\n[+] Compiling architecture analytics into PDF report...")
